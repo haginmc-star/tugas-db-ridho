@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link
+    rel="stylesheet"
+    href="https://use.fontawesome.com/releases/v5.15.4/css/all.css"
+    integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm"
+    crossorigin="anonymous"/>
+    <title>Document</title>
+</head>
+<body>
+    <h2>🍞 Sistem Inventaris Roti</h2>
+<form>
+ <div class="inti">
+  <div class="kanan">
+        <label for="Roti">🍞 Nama Roti</label><br>
+    <div class="container">
+        <i class='fas fa-bread-slice'></i>
+        <input type="text" placeholder="e.g., Croissant, Roti Tawar">
+    </div>
+
+        <label for="Kategori">📂 Kategori Roti</label placeholder><br>
+    <div class="container">
+        <i class='fas fa-file'></i>
+        <select name="Roti" id="">
+            <option value="">Pilih Kategori</option>
+            <option value="Roti Tawar">Roti Tawar</option>
+            <option value="Roti Manis">Roti Manis</option>
+            <option value="Roti Isi">Roti Isi</option>
+            <option value="Roti Gandum">Roti Gandum</option>
+            <option value="Roti Sobek">Roti Sobek</option>
+            <option value="Roti Bakar">Roti Bakar</option>
+            <option value="Baguette">Baguette</option>
+            <option value="Croissant">Croissant</option>
+            <option value="Pastry">Pastry</option>
+            <option value="Donat">Donat</option>
+            <option value="Bagel">Bagel</option>
+            <option value="Brioche">Brioche</option>
+            <option value="Kue Kering">Kue Kering</option>
+            <option value="Kue Basah">Kue Basah</option>
+            <option value="Cake">Cake</option>
+            <option value="Bolu">Bolu</option>
+            <option value="Roti Lainnya">Roti Lainnya</option>
+        </select>
+     </div>
+     </div>
+    <div class="kiri">
+         <label for="Harga">💵 Harga Satuan(Rp)</label><br>
+        <div class="container">
+            <i class='fas fa-money-bill'></i>
+         <input type="text">
+        </div>
+    </div>
+ </div>
+ <button type="submit " class="confirm">+ Tambahkan Ke Stok</button> 
+        
+ <button type="reset" class="ulang">Reset Form</button>
+</form>
+
+<div class="tabel">
+    <h3>📋 Data Stok Roti</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Nama</th>
+                <th>Kategori</th>
+                <th>Harga</th>
+                <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody id="tableData">
+            <tr><td colspan="4">Memuat data...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ===== POPUP FORM EDIT ===== -->
+<div class="modal" id="modalEdit">
+    <form class="modal-box" id="formEdit">
+        <h3>✏️ Edit Data Roti</h3>
+        <input type="hidden" id="editId">
+
+        <label for="editNama">🍞 Nama Roti</label>
+        <div class="container">
+            <i class="fas fa-bread-slice"></i>
+            <input type="text" id="editNama" required>
+        </div>
+
+        <label for="editKategori">📂 Kategori Roti</label>
+        <div class="container">
+            <i class="fas fa-file"></i>
+            <select id="editKategori" required></select>
+        </div>
+
+        <label for="editHarga">💵 Harga Satuan(Rp)</label>
+        <div class="container">
+            <i class="fas fa-money-bill"></i>
+            <input type="text" id="editHarga" required>
+        </div>
+
+        <button type="submit" class="confirm">💾 Simpan Perubahan</button>
+        <button type="button" class="ulang" id="btnBatal">Batal</button>
+    </form>
+</div>
+
+<script>
+// ================= KONEKSI GOOGLE SPREADSHEET =================
+const API_URL = 'https://script.google.com/macros/s/AKfycbwPwGKUheREq5hz0TtSfCtls_qip53Nfevxk8S5j5V1cGifDf3CiE6gcC6mYmX3Jnq4/exec';
+
+// ---------- Form tambah (form utama) ----------
+const form = document.querySelector('form');
+const inputNama = form.querySelector('input[type="text"]');            // Nama Roti
+const selectKategori = form.querySelector('select');                    // Kategori
+const inputHarga = form.querySelectorAll('input[type="text"]')[1];      // Harga Satuan
+const tableData = document.getElementById('tableData');
+
+// ---------- Form edit (popup) ----------
+const modal = document.getElementById('modalEdit');
+const formEdit = document.getElementById('formEdit');
+const editId = document.getElementById('editId');
+const editNama = document.getElementById('editNama');
+const editKategori = document.getElementById('editKategori');
+const editHarga = document.getElementById('editHarga');
+
+let dataRoti = [];   // simpan data terakhir dari spreadsheet
+
+// isi dropdown kategori form edit sama persis dengan form utama
+editKategori.innerHTML = selectKategori.innerHTML;
+
+function esc(v) {
+    const d = document.createElement('div');
+    d.textContent = v == null ? '' : v;
+    return d.innerHTML;
+}
+
+// ---------- READ ----------
+async function loadData() {
+    try {
+        const res = await fetch(API_URL + '?action=read');
+        const result = await res.json();
+        if (!result.success) return alert(result.message);
+        dataRoti = result.data;
+        renderTable(dataRoti);
+    } catch (err) {
+        console.error(err);
+        tableData.innerHTML = '<tr><td colspan="4">Gagal mengambil data.</td></tr>';
+    }
+}
+
+function renderTable(data) {
+    if (!data.length) {
+        tableData.innerHTML = '<tr><td colspan="4">Belum ada data.</td></tr>';
+        return;
+    }
+    tableData.innerHTML = '';
+    data.forEach(function (item) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${esc(item.NAMA)}</td>
+            <td>${esc(item.KATEGORI)}</td>
+            <td>Rp ${Number(item.HARGA || 0).toLocaleString('id-ID')}</td>
+            <td>
+                <div class="aksi">
+                    <button type="button" class="edit" data-id="${esc(item.ID)}">Edit</button>
+                    <button type="button" class="hapus" data-id="${esc(item.ID)}">Hapus</button>
+                </div>
+            </td>`;
+        tableData.appendChild(row);
+    });
+}
+
+// ---------- CREATE (form utama) ----------
+form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    if (selectKategori.selectedIndex === 0) {
+        alert('Pilih kategori dulu.');
+        return;
+    }
+
+    const data = {
+        NAMA: inputNama.value,
+        KATEGORI: selectKategori.options[selectKategori.selectedIndex].text,
+        HARGA: inputHarga.value
+    };
+
+    try {
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'create', data: data })
+        });
+        const result = await res.json();
+        alert(result.message);
+        if (result.success) {
+            form.reset();
+            loadData();
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Gagal menyimpan data.');
+    }
+});
+
+// ---------- Tombol Edit / Hapus di tabel ----------
+tableData.addEventListener('click', function (e) {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    if (btn.classList.contains('edit')) bukaEdit(btn.dataset.id);
+    if (btn.classList.contains('hapus')) deleteData(btn.dataset.id);
+});
+
+// ---------- Buka popup edit ----------
+function bukaEdit(id) {
+    const item = dataRoti.find(function (d) { return String(d.ID) === String(id); });
+    if (!item) return alert('Data tidak ditemukan, coba muat ulang halaman.');
+
+    editId.value = item.ID;
+    editNama.value = item.NAMA || '';
+    editHarga.value = item.HARGA || '';
+
+    // kalau kategori belum ada di dropdown, tambahkan
+    let ketemu = false;
+    for (let i = 0; i < editKategori.options.length; i++) {
+        if (editKategori.options[i].text === item.KATEGORI) {
+            editKategori.selectedIndex = i;
+            ketemu = true;
+            break;
+        }
+    }
+    if (!ketemu && item.KATEGORI) {
+        editKategori.add(new Option(item.KATEGORI, item.KATEGORI));
+        editKategori.value = item.KATEGORI;
+    }
+
+    modal.classList.add('buka');
+    editNama.focus();
+}
+
+function tutupEdit() {
+    modal.classList.remove('buka');
+    formEdit.reset();
+}
+
+document.getElementById('btnBatal').addEventListener('click', tutupEdit);
+modal.addEventListener('click', function (e) { if (e.target === modal) tutupEdit(); });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') tutupEdit(); });
+
+// ---------- UPDATE (form edit) ----------
+formEdit.addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    if (editKategori.selectedIndex === 0) {
+        alert('Pilih kategori dulu.');
+        return;
+    }
+
+    const data = {
+        NAMA: editNama.value,
+        KATEGORI: editKategori.options[editKategori.selectedIndex].text,
+        HARGA: editHarga.value
+    };
+
+    try {
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'update', id: editId.value, data: data })
+        });
+        const result = await res.json();
+        alert(result.message);
+        if (result.success) {
+            tutupEdit();
+            loadData();
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Gagal menyimpan perubahan.');
+    }
+});
+
+// ---------- DELETE ----------
+async function deleteData(id) {
+    if (!confirm('Yakin ingin menghapus roti ini?')) return;
+    try {
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'delete', id: id })
+        });
+        const result = await res.json();
+        alert(result.message);
+        if (result.success) loadData();
+    } catch (err) {
+        console.error(err);
+        alert('Gagal menghapus data.');
+    }
+}
+
+loadData();
+</script>
+</body>
+</html>
