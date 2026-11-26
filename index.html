@@ -65,6 +65,7 @@
     <table>
         <thead>
             <tr>
+                <th>No</th>
                 <th>Nama</th>
                 <th>Kategori</th>
                 <th>Harga</th>
@@ -72,7 +73,7 @@
             </tr>
         </thead>
         <tbody id="tableData">
-            <tr><td colspan="4">Memuat data...</td></tr>
+            <tr><td colspan="5">Memuat data...</td></tr>
         </tbody>
     </table>
 </div>
@@ -146,19 +147,24 @@ async function loadData() {
         renderTable(dataRoti);
     } catch (err) {
         console.error(err);
-        tableData.innerHTML = '<tr><td colspan="4">Gagal mengambil data.</td></tr>';
+        tableData.innerHTML = '<tr><td colspan="5">Gagal mengambil data.</td></tr>';
     }
 }
 
 function renderTable(data) {
     if (!data.length) {
-        tableData.innerHTML = '<tr><td colspan="4">Belum ada data.</td></tr>';
+        tableData.innerHTML = '<tr><td colspan="5">Belum ada data.</td></tr>';
         return;
     }
     tableData.innerHTML = '';
-    data.forEach(function (item) {
+
+    // data terbaru di atas, yang lama di bawah
+    const urut = data.slice().reverse();
+
+    urut.forEach(function (item, index) {
         const row = document.createElement('tr');
         row.innerHTML = `
+            <td>${index + 1}</td>
             <td>${esc(item.NAMA)}</td>
             <td>${esc(item.KATEGORI)}</td>
             <td>Rp ${Number(item.HARGA || 0).toLocaleString('id-ID')}</td>
@@ -176,7 +182,7 @@ function renderTable(data) {
 form.addEventListener('submit', async function (e) {
     e.preventDefault();
 
-    if (selectKategori.selectedIndex === 0) {
+    if (selectKategori.selectedIndex === 0  ) {
         alert('Pilih kategori dulu.');
         return;
     }
